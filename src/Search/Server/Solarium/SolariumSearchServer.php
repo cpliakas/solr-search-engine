@@ -30,7 +30,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     protected $_client;
 
     /**
-     * The documents queued for indexing.
+     * The native document objects ready to be indexed indexing.
      *
      * @var array
      */
@@ -44,7 +44,19 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     protected $_update;
 
     /**
-     * Instantiates a SolariumClient object or sets it.
+     * The batch size, defaults to 0 meaning there is no batch functionality.
+     *
+     * Issues a POST request to the Solr server after the number of documents
+     * secified by this variable are processed for indexing. For large indexing
+     * operations, this prevents documents from building up in memory and allows
+     * the application to send smaller requests to Solr.
+     *
+     * @var int
+     */
+    protected $_batchSize = 0;
+
+    /**
+     * Constructs a SolariumSearchServer object.
      *
      * @param array|SolariumClient $options
      *   The populated Solarium client object, or an array of configuration
@@ -87,23 +99,48 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
      * Sets the SolariumClient object.
      *
      * @param SolariumClient $client
-     *   The solarium client.
+     *   The Solarium client.
      *
      * @return SolariumSearchServer
      */
     public function setClient(SolariumClient $client)
     {
-        return $this->_client;
+        $this->_client = $client;
+        return $this;
     }
 
     /**
-     * Returns the Client object.
+     * Returns the SolariumClient object.
      *
      * @return SolariumClient
      */
     public function getClient()
     {
         return $this->_client;
+    }
+
+    /**
+     * Sets the number of documents processed per batch.
+     *
+     * @param int $batch_size
+     *   The number of documents processed per batch.
+     *
+     * @return SolariumSearchServer
+     */
+    public function setBatchSize($batch_size)
+    {
+        $this->_batchSize = $batch_size;
+        return $this;
+    }
+
+    /**
+     * Returns the number of documents processed per batch.
+     *
+     * @return int
+     */
+    public function getBatchSize()
+    {
+        return $this->_batchSize;
     }
 
     /**
@@ -151,23 +188,24 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
      */
     public function indexDocument(SearchIndexDocument $document)
     {
-        $solrarium_document = $this->_update->createDocument();
+        $index_doc = $this->_update->createDocument();
 
         if (null !== ($boost = $document->getBoost())) {
-            $solrarium_document->setBoost($boost);
+            $index_doc->setBoost($boost);
         }
 
         foreach ($document as $field_id => $normalized_value) {
             $field = $document->getField($field_id);
 
             $name = $field->getName();
-            $solrarium_document->$name = $normalized_value;
+            $index_doc->$name = $normalized_value;
 
             if (null !== ($boost = $field->getBoost())) {
-                $solrarium_document->setFieldBoost($name, $boost);
+                $index_doc->setFieldBoost($name, $boost);
             }
         }
-        $this->_documents[] = $solrarium_document;
+
+        $this->_documents[] = $index_doc;
     }
 
     /**
@@ -179,11 +217,14 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
      */
     public function postIndexDocument(SearchDocumentEvent $event)
     {
-        $commit = 0 == (count($this->_documents) % 20);
-        if ($commit) {
-            $this->_update->addDocuments($this->_documents);
-            $this->_client->update($this->_update);
-            $this->_documents = array();
+        if ($this->_batchSize) {
+            $commit = !(count($this->_documents) % $this->_batchSize);
+            if ($commit) {
+                var_dump('Hi');
+                $this->_update->addDocuments($this->_documents);
+                $this->_client->update($this->_update);
+                $this->_documents = array();
+            }
         }
     }
 
@@ -208,16 +249,28 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
+     * Implements Search::Server::SearchServerAbstract::search().
+     *
+     * @return \Solarium\QueryType\Select\Result\Result
+     */
+    public function search($keywords, array $options = array())
+    {
+        $query = $this->_client->createSelect();
+        $query->setQuery($keywords);
+        return $this->_client->select($query);
+    }
+
+    /**
      * Implements Search::Server::SearchServerAbstract::delete().
      *
-     * @param SolariumIndexDocument $document
+     * @return \Solarium\QueryType\Update\Result
      */
     public function delete()
     {
         $update = $this->_client->createUpdate();
         $update->addDeleteQuery('*:*');
         $update->addCommit();
-        $this->_client->update($update);
+        return $this->_client->update($update);
     }
 
     /**
