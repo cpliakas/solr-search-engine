@@ -10,6 +10,7 @@ namespace Search\Server\Solarium;
 
 use Search\Framework\Event\SearchDocumentEvent;
 use Search\Framework\Event\SearchCollectionEvent;
+use Search\Framework\SearchCollectionAbstract;
 use Search\Framework\SearchEvents;
 use Search\Framework\SearchServerAbstract;
 use Search\Framework\SearchIndexDocument;
@@ -168,6 +169,13 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
+     * Implements Search::Server::SearchServerAbstract::createIndex().
+     *
+     * We cannot create Solr indexes from the client application.
+     */
+    public function createIndex($name, array $options = array()) {}
+
+    /**
      * Listener for the SearchEvents::COLLECTION_PRE_INDEX event.
      *
      * Initializes the array of native document objects, instantiates the update
@@ -184,9 +192,10 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     /**
      * Implements Search::Server::SearchServerAbstract::indexDocument().
      *
+     * @param SearchCollectionAbstract $collection
      * @param SolariumIndexDocument $document
      */
-    public function indexDocument(SearchIndexDocument $document)
+    public function indexDocument(SearchCollectionAbstract $collection, SearchIndexDocument $document)
     {
         $index_doc = $this->_update->createDocument();
 
@@ -271,13 +280,5 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
         $update->addDeleteQuery('*:*');
         $update->addCommit();
         return $this->_client->update($update);
-    }
-
-    /**
-     * Pass all other method calls directly to the Solarium client.
-     */
-    public function __call($method, $args)
-    {
-        return call_user_func_array(array($this->_client, $method), $args);
     }
 }
