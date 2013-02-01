@@ -1,7 +1,7 @@
 Overview
 ========
 
-This library integrates with Solarium project with the Search Framework library.
+This library integrates the Solarium project with the Search Framework library.
 
 ```php
 
