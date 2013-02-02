@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Solarium search server for the Search Framework library.
+ * Solr search service for the Search Framework library.
  *
  * @license http://www.gnu.org/licenses/lgpl-3.0.txt
  */
 
-namespace Search\Server\Solarium;
+namespace Search\Service\Solr;
 
 use Search\Framework\SearchIndexDocument;
 
@@ -15,7 +15,7 @@ use Search\Framework\SearchIndexDocument;
  *
  * This object adds Solr specific properties, such as field boosting.
  */
-class SolariumIndexDocument extends SearchIndexDocument
+class SolrIndexDocument extends SearchIndexDocument
 {
     /**
      * The document level boost set for this document.
@@ -28,7 +28,7 @@ class SolariumIndexDocument extends SearchIndexDocument
      * @param float $boost
      *   The boost factor applied to the field.
      *
-     * @return SolariumIndexDocument
+     * @return SolrIndexDocument
      */
     public function setBoost($boost)
     {

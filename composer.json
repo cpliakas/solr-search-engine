@@ -1,7 +1,7 @@
 {
     "name": "cpliakas/solarium-search-server",
     "type": "library",
-    "description": "Provides a Solr search server to the Search Framework library by leveraging the Solarium project.",
+    "description": "Provides a Solr search service to the Search Framework library by leveraging the Solarium project.",
     "keywords": ["search", "search-framework", "solr", "solarium"],
     "homepage": "https://github.com/cpliakas/solarium-search-server",
     "license": "LGPL-3.0",
@@ -17,7 +17,7 @@
     },
     "autoload": {
         "psr-0": {
-            "Search\\Server\\Solarium": "src/"
+            "Search\\Service\\Solr": "src/"
         }
     }
 }

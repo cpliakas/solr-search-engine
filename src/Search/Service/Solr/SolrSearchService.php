@@ -1,27 +1,28 @@
 <?php
 
 /**
- * Solarium search server for the Search Framework library.
+ * Solr search service for the Search Framework library.
  *
  * @license http://www.gnu.org/licenses/lgpl-3.0.txt
  */
 
-namespace Search\Server\Solarium;
+namespace Search\Service\Solr;
 
 use Search\Framework\Event\SearchDocumentEvent;
 use Search\Framework\Event\SearchCollectionEvent;
 use Search\Framework\SearchCollectionAbstract;
 use Search\Framework\SearchEvents;
-use Search\Framework\SearchServerAbstract;
+use Search\Framework\SearchServiceAbstract;
 use Search\Framework\SearchIndexDocument;
 use Solarium\Client as SolariumClient;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Integrates the Solarium library with the Search Framework.
+ * Provides a Solr search service to the Search Framework library by integrating
+ * with the Solarium project.
  */
-class SolariumSearchServer extends SearchServerAbstract implements EventSubscriberInterface
+class SolrSearchService extends SearchServiceAbstract implements EventSubscriberInterface
 {
     /**
      * The Solarium client interacting with the server.
@@ -57,7 +58,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     protected $_batchSize = 0;
 
     /**
-     * Constructs a SolariumSearchServer object.
+     * Constructs a SolrSearchService object.
      *
      * @param array|SolariumClient $options
      *   The populated Solarium client object, or an array of configuration
@@ -102,7 +103,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
      * @param SolariumClient $client
      *   The Solarium client.
      *
-     * @return SolariumSearchServer
+     * @return SolariumSearchService
      */
     public function setClient(SolariumClient $client)
     {
@@ -126,7 +127,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
      * @param int $batch_size
      *   The number of documents processed per batch.
      *
-     * @return SolariumSearchServer
+     * @return SolrSearchService
      */
     public function setBatchSize($batch_size)
     {
@@ -145,31 +146,31 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
-     * Overrides Search::Server::SearchServerAbstract::getDocument().
+     * Overrides Search::Framework::SearchServiceAbstract::getDocument().
      *
-     * Returns a Solarium specific search index document object.
+     * Returns a Solr specific search index document object.
      *
-     * @return SolariumIndexDocument
+     * @return SolrIndexDocument
      */
     public function newDocument()
     {
-        return new SolariumIndexDocument($this);
+        return new SolrIndexDocument($this);
     }
 
     /**
-     * Overrides Search::Server::SearchServerAbstract::getField().
+     * Overrides Search::Framework::SearchServiceAbstract::getField().
      *
-     * Returns a Solarium specific search index field object.
+     * Returns a Solr specific search index field object.
      *
-     * @return SolariumIndexField
+     * @return SolrIndexField
      */
     public function newField($id, $value, $name = null)
     {
-        return new SolariumIndexField($id, $value, $name);
+        return new SolrIndexField($id, $value, $name);
     }
 
     /**
-     * Implements Search::Server::SearchServerAbstract::createIndex().
+     * Implements Search::Framework::SearchServiceAbstract::createIndex().
      *
      * We cannot create Solr indexes from the client application.
      */
@@ -190,10 +191,10 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
-     * Implements Search::Server::SearchServerAbstract::indexDocument().
+     * Implements Search::Framework::SearchServiceAbstract::indexDocument().
      *
      * @param SearchCollectionAbstract $collection
-     * @param SolariumIndexDocument $document
+     * @param SolrIndexDocument $document
      */
     public function indexDocument(SearchCollectionAbstract $collection, SearchIndexDocument $document)
     {
@@ -229,7 +230,6 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
         if ($this->_batchSize) {
             $commit = !(count($this->_documents) % $this->_batchSize);
             if ($commit) {
-                var_dump('Hi');
                 $this->_update->addDocuments($this->_documents);
                 $this->_client->update($this->_update);
                 $this->_documents = array();
@@ -258,7 +258,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
-     * Implements Search::Server::SearchServerAbstract::search().
+     * Implements Search::Framework::SearchServiceAbstract::search().
      *
      * @return \Solarium\QueryType\Select\Result\Result
      */
@@ -270,7 +270,7 @@ class SolariumSearchServer extends SearchServerAbstract implements EventSubscrib
     }
 
     /**
-     * Implements Search::Server::SearchServerAbstract::delete().
+     * Implements Search::Framework::SearchServiceAbstract::delete().
      *
      * @return \Solarium\QueryType\Update\Result
      */
