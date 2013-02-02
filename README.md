@@ -9,7 +9,7 @@ This library integrates the Solarium project with the Search Framework library.
 
 // @see https://github.com/cpliakas/feed-collection
 use Search\Collection\Feed\FeedCollection;
-use Search\Server\Solarium\SolariumSearchServer;
+use Search\Service\Solr\SolrSearchService;
 
 require 'vendor/autoload.php';
 
@@ -23,7 +23,7 @@ $options = array(
         ),
     ),
 );
-$solr = new SolariumSearchServer($options);
+$solr = new SolrSearchServer($options);
 
 // Associate the collection with the Solr server.
 $drupal_planet = new FeedCollection();
