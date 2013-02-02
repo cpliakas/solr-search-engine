@@ -103,7 +103,7 @@ class SolrSearchService extends SearchServiceAbstract implements EventSubscriber
      * @param SolariumClient $client
      *   The Solarium client.
      *
-     * @return SolariumSearchService
+     * @return SolrSearchService
      */
     public function setClient(SolariumClient $client)
     {
@@ -172,7 +172,8 @@ class SolrSearchService extends SearchServiceAbstract implements EventSubscriber
     /**
      * Implements Search::Framework::SearchServiceAbstract::createIndex().
      *
-     * We cannot create Solr indexes from the client application.
+     * Solr indexes cannot be created from the client application, so this
+     * method is no-op.
      */
     public function createIndex($name, array $options = array()) {}
 
@@ -221,7 +222,7 @@ class SolrSearchService extends SearchServiceAbstract implements EventSubscriber
     /**
      * Listener for the SearchEvents::DOCUMENT_POST_INDEX event.
      *
-     * Issues a commit every 20 documents.
+     * Issues a commit every n number of documents.
      *
      * @param SearchDocumentEvent $event
      */
