@@ -58,29 +58,32 @@ class SolrSearchService extends SearchServiceAbstract implements EventSubscriber
     protected $_batchSize = 0;
 
     /**
-     * Constructs a SolrSearchService object.
+     * Overrides Search::Framework::SearchServiceAbstract::init().
      *
-     * @param array|SolariumClient $options
-     *   The populated Solarium client object, or an array of configuration
-     *   options used to instantiate a new client object.
-     * @param EventDispatcher|null $dispatcher
-     *   Optionally pass a dispatcher object that was instantiated elsewhere in
-     *   the application. This is useful in cases where a global dispatcher is
-     *   being used.
-     *
-     * @throws InvalidArgumentException
+     * Sets the Solarium client, registers listeners.
      */
-    public function __construct($options, $dispatcher = null)
+    public function init(array $endpoints, array $options)
     {
-        if ($options instanceof SolariumClient) {
-            $this->_client = $options;
-        } else {
-            $this->_client = new SolariumClient($options);
+        // @see http://wiki.solarium-project.org/index.php/V3:Basic_usage
+        $client_options = array('endpoint' => array());
+        foreach ($endpoints as $endpoint) {
+            $id = $endpoint->getId();
+
+            $endpoint_host = $endpoint->getHost();
+            $scheme = parse_url($endpoint_host, PHP_URL_SCHEME);
+            $host = parse_url($endpoint_host, PHP_URL_HOST);
+            $path = rtrim((string) parse_url($endpoint_host, PHP_URL_PATH), '/');
+            $path .= $endpoint->getPath();
+
+            $client_options['endpoint'][$id] = array(
+                'scheme' => $scheme,
+                'host' => $host,
+                'path' => $path,
+                'port' => $endpoint->getPort(),
+            );
         }
 
-        if ($dispatcher instanceof EventDispatcher) {
-            $this->setDispatcher($dispatcher);
-        }
+        $this->_client = new SolariumClient($client_options);
 
         $this->getDispatcher()->addSubscriber($this);
     }

@@ -9,21 +9,13 @@ This library integrates the Solarium project with the Search Framework library.
 
 // @see https://github.com/cpliakas/feed-collection
 use Search\Collection\Feed\FeedCollection;
+use Search\Framework\SearchServiceEndpoint;
 use Search\Service\Solr\SolrSearchService;
 
 require 'vendor/autoload.php';
 
-$options = array(
-    'endpoint' => array(
-        'localhost' => array(
-            'scheme' => 'http',
-            'host' =>'localhost',
-            'port' => 8983,
-            'path' => '/solr',
-        ),
-    ),
-);
-$solr = new SolrSearchServer($options);
+$endpoint = new SearchServiceEndpoint('local', 'http://localhost', '/solr', 8983);
+$solr = new SolrSearchServer($endpoint);
 
 // Associate the collection with the Solr server.
 $drupal_planet = new FeedCollection();
