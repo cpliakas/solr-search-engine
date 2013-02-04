@@ -15,14 +15,12 @@ use Search\Framework\SearchEvents;
 use Search\Framework\SearchServiceAbstract;
 use Search\Framework\SearchIndexDocument;
 use Solarium\Client as SolariumClient;
-use Symfony\Component\EventDispatcher\EventDispatcher;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Provides a Solr search service to the Search Framework library by integrating
  * with the Solarium project.
  */
-class SolrSearchService extends SearchServiceAbstract implements EventSubscriberInterface
+class SolrSearchService extends SearchServiceAbstract
 {
     /**
      * The Solarium client interacting with the server.
@@ -84,12 +82,10 @@ class SolrSearchService extends SearchServiceAbstract implements EventSubscriber
         }
 
         $this->_client = new SolariumClient($client_options);
-
-        $this->getDispatcher()->addSubscriber($this);
     }
 
     /**
-     * Implements EventSubscriberInterface::getSubscribedEvents().
+     * Overrides SearchServiceAbstract::getSubscribedEvents().
      */
     public static function getSubscribedEvents()
     {
