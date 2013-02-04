@@ -22,6 +22,9 @@ use Solarium\Client as SolariumClient;
  */
 class SolrSearchService extends SearchServiceAbstract
 {
+
+    protected static $_id = 'solr';
+
     /**
      * The Solarium client interacting with the server.
      *
@@ -228,8 +231,8 @@ class SolrSearchService extends SearchServiceAbstract
     public function postIndexDocument(SearchDocumentEvent $event)
     {
         if ($this->_batchSize) {
-            $commit = !(count($this->_documents) % $this->_batchSize);
-            if ($commit) {
+            $post_documents = !(count($this->_documents) % $this->_batchSize);
+            if ($post_documents) {
                 $this->_update->addDocuments($this->_documents);
                 $this->_client->update($this->_update);
                 $this->_documents = array();
