@@ -9,7 +9,7 @@
 namespace Search\Service\Solr;
 
 use Search\Framework\Event\SearchDocumentEvent;
-use Search\Framework\Event\SearchCollectionEvent;
+use Search\Framework\Event\SearchServiceEvent;
 use Search\Framework\SearchCollectionAbstract;
 use Search\Framework\SearchEvents;
 use Search\Framework\SearchServiceAbstract;
@@ -93,9 +93,9 @@ class SolrSearchService extends SearchServiceAbstract
     public static function getSubscribedEvents()
     {
         return array(
-            SearchEvents::COLLECTION_PRE_INDEX => array('preIndexCollection'),
+            SearchEvents::SERVICE_PRE_INDEX => array('preIndex'),
             SearchEvents::DOCUMENT_POST_INDEX => array('postIndexDocument'),
-            SearchEvents::COLLECTION_POST_INDEX => array('postIndexCollection'),
+            SearchEvents::SERVICE_POST_INDEX => array('postIndex'),
         );
     }
 
@@ -180,21 +180,21 @@ class SolrSearchService extends SearchServiceAbstract
     public function createIndex($name, array $options = array()) {}
 
     /**
-     * Listener for the SearchEvents::COLLECTION_PRE_INDEX event.
+     * Listener for the SearchEvents::SERVICE_PRE_INDEX event.
      *
      * Initializes the array of native document objects, instantiates the update
      * request handler.
      *
      * @param SearchCollectionEvent $event
      */
-    public function preIndexCollection(SearchCollectionEvent $event)
+    public function preIndex(SearchServiceEvent $event)
     {
         $this->_documents = array();
         $this->_update = $this->_client->createUpdate();
     }
 
     /**
-     * Implements Search::Framework::SearchServiceAbstract::indexDocument().
+     * Implements SearchServiceAbstract::indexDocument().
      *
      * @param SearchCollectionAbstract $collection
      * @param SolrIndexDocument $document
@@ -241,14 +241,14 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Listener for the SearchEvents::COLLECTION_POST_INDEX event.
+     * Listener for the SearchEvents::SERVICE_POST_INDEX event.
      *
      * Commits any remaining documents, unsets the documents and request handler
      * since they are no longer needed.
      *
      * @param SearchCollectionEvent $event
      */
-    public function postIndexCollection(SearchCollectionEvent $event)
+    public function postIndex(SearchServiceEvent $event)
     {
         if ($this->_documents) {
             $this->_update->addDocuments($this->_documents);
