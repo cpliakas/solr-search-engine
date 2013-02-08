@@ -94,6 +94,7 @@ class SolrSearchService extends SearchServiceAbstract
     {
         return array(
             SearchEvents::SERVICE_PRE_INDEX => array('preIndex'),
+            SearchEvents::FIELD_NORMALIZE => array('normalizeField'),
             SearchEvents::DOCUMENT_POST_INDEX => array('postIndexDocument'),
             SearchEvents::SERVICE_POST_INDEX => array('postIndex'),
         );
@@ -191,6 +192,23 @@ class SolrSearchService extends SearchServiceAbstract
     {
         $this->_documents = array();
         $this->_update = $this->_client->createUpdate();
+    }
+
+    /**
+     * Listener for the SearchEvents::FIELD_NORMALIZE event.
+     */
+    public function normalizeField(SearchFieldEvent $event)
+    {
+        // Refer to https://github.com/cpliakas/search-framework/issues/26.
+        // This is nasty, but it works. Hopefully it won't be required soon.
+        $schema = $this->getSchema();
+        $field = $event->getField();
+        switch ($schema->getField($field->getId())->getType()) {
+            case SearchSchemaField::TYPE_DATE:
+                $timestamp = strtotime($field);
+                $event->setValue(date('Y-m-d\TH:i:s\Z', $timestamp));
+                break;
+        }
     }
 
     /**
