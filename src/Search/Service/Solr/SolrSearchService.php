@@ -12,8 +12,9 @@ use Search\Framework\Event\SearchDocumentEvent;
 use Search\Framework\Event\SearchServiceEvent;
 use Search\Framework\SearchCollectionAbstract;
 use Search\Framework\SearchEvents;
-use Search\Framework\SearchServiceAbstract;
 use Search\Framework\SearchIndexDocument;
+use Search\Framework\SearchSchemaField;
+use Search\Framework\SearchServiceAbstract;
 use Solarium\Client as SolariumClient;
 
 /**
@@ -59,11 +60,11 @@ class SolrSearchService extends SearchServiceAbstract
     protected $_batchSize = 0;
 
     /**
-     * Overrides Search::Framework::SearchServiceAbstract::init().
+     * Implements SearchServiceAbstract::init().
      *
-     * Sets the Solarium client, registers listeners.
+     * Instantiates the Solarium client.
      */
-    public function init(array $endpoints, array $options)
+    public function init(array $endpoints)
     {
         // @see http://wiki.solarium-project.org/index.php/V3:Basic_usage
         $client_options = array('endpoint' => array());
@@ -85,6 +86,8 @@ class SolrSearchService extends SearchServiceAbstract
         }
 
         $this->_client = new SolariumClient($client_options);
+
+        $this->attachNormalizer(SearchSchemaField::TYPE_DATE, new SolrDateNormalizer());
     }
 
     /**
@@ -94,7 +97,6 @@ class SolrSearchService extends SearchServiceAbstract
     {
         return array(
             SearchEvents::SERVICE_PRE_INDEX => array('preIndex'),
-            SearchEvents::FIELD_NORMALIZE => array('normalizeField'),
             SearchEvents::DOCUMENT_POST_INDEX => array('postIndexDocument'),
             SearchEvents::SERVICE_POST_INDEX => array('postIndex'),
         );
@@ -195,23 +197,6 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Listener for the SearchEvents::FIELD_NORMALIZE event.
-     */
-    public function normalizeField(SearchFieldEvent $event)
-    {
-        // Refer to https://github.com/cpliakas/search-framework/issues/26.
-        // This is nasty, but it works. Hopefully it won't be required soon.
-        $schema = $this->getSchema();
-        $field = $event->getField();
-        switch ($schema->getField($field->getId())->getType()) {
-            case SearchSchemaField::TYPE_DATE:
-                $timestamp = strtotime($field);
-                $event->setValue(date('Y-m-d\TH:i:s\Z', $timestamp));
-                break;
-        }
-    }
-
-    /**
      * Implements SearchServiceAbstract::indexDocument().
      *
      * @param SearchCollectionAbstract $collection
@@ -219,24 +204,24 @@ class SolrSearchService extends SearchServiceAbstract
      */
     public function indexDocument(SearchCollectionAbstract $collection, SearchIndexDocument $document)
     {
-        $index_doc = $this->_update->createDocument();
+        $solarium_document = $this->_update->createDocument();
 
         if (null !== ($boost = $document->getBoost())) {
-            $index_doc->setBoost($boost);
+            $solarium_document->setBoost($boost);
         }
 
         foreach ($document as $field_id => $normalized_value) {
             $field = $document->getField($field_id);
 
             $name = $field->getName();
-            $index_doc->$name = $normalized_value;
+            $solarium_document->$name = $normalized_value;
 
             if (null !== ($boost = $field->getBoost())) {
-                $index_doc->setFieldBoost($name, $boost);
+                $solarium_document->setFieldBoost($name, $boost);
             }
         }
 
-        $this->_documents[] = $index_doc;
+        $this->_documents[] = $solarium_document;
     }
 
     /**
