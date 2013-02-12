@@ -24,7 +24,7 @@ use Solarium\Client as SolariumClient;
 class SolrSearchService extends SearchServiceAbstract
 {
 
-    protected static $_id = 'solr';
+    protected static $_configBasename = 'solr';
 
     /**
      * The Solarium client interacting with the server.
