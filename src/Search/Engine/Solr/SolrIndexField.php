@@ -6,16 +6,16 @@
  * @license http://www.gnu.org/licenses/lgpl-3.0.txt
  */
 
-namespace Search\Service\Solr;
+namespace Search\Engine\Solr;
 
-use Search\Framework\SearchIndexField;
+use Search\Framework\IndexField;
 
 /**
  * Models a field in the source data being indexed.
  *
  * This object adds Solr specific properties, such as field boosting.
  */
-class SolrIndexField extends SearchIndexField
+class SolrIndexField extends IndexField
 {
     /**
      * The field level boost set for this document.

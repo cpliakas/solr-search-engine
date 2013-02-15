@@ -6,22 +6,24 @@
  * @license http://www.gnu.org/licenses/lgpl-3.0.txt
  */
 
-namespace Search\Service\Solr;
+namespace Search\Engine\Solr;
 
-use Search\Framework\Event\SearchDocumentEvent;
-use Search\Framework\Event\SearchServiceEvent;
-use Search\Framework\SearchCollectionAbstract;
+use Search\Framework\Event\IndexDocumentEvent;
+use Search\Framework\Event\SearchEngineEvent;
+use Search\Framework\CollectionAbstract;
+use Search\Framework\DateNormalizer;
+use Search\Framework\IndexDocument;
+use Search\Framework\Indexer;
+use Search\Framework\SchemaField;
+use Search\Framework\SearchEngineAbstract;
 use Search\Framework\SearchEvents;
-use Search\Framework\SearchIndexDocument;
-use Search\Framework\SearchSchemaField;
-use Search\Framework\SearchServiceAbstract;
-use Solarium\Client as SolariumClient;
+use Solarium\Client;
 
 /**
  * Provides a Solr search service to the Search Framework library by integrating
  * with the Solarium project.
  */
-class SolrSearchService extends SearchServiceAbstract
+class Solr extends SearchEngineAbstract
 {
 
     protected static $_configBasename = 'solr';
@@ -29,7 +31,7 @@ class SolrSearchService extends SearchServiceAbstract
     /**
      * The Solarium client interacting with the server.
      *
-     * @var SolariumClient
+     * @var Client
      */
     protected $_client;
 
@@ -60,14 +62,16 @@ class SolrSearchService extends SearchServiceAbstract
     protected $_batchSize = 0;
 
     /**
-     * Implements SearchServiceAbstract::init().
+     * Implements SearchEngineAbstract::init().
      *
      * Instantiates the Solarium client.
      */
-    public function init(array $endpoints)
+    public function init(array $endpoints, array $options)
     {
+        // Don't allow the "endpoint" option to be passed at runtime.
+        $options['endpoint'] = array();
+
         // @see http://wiki.solarium-project.org/index.php/V3:Basic_usage
-        $client_options = array('endpoint' => array());
         foreach ($endpoints as $endpoint) {
             $id = $endpoint->getId();
 
@@ -77,7 +81,7 @@ class SolrSearchService extends SearchServiceAbstract
             $path = rtrim((string) parse_url($endpoint_host, PHP_URL_PATH), '/');
             $path .= $endpoint->getPath();
 
-            $client_options['endpoint'][$id] = array(
+            $options['endpoint'][$id] = array(
                 'scheme' => $scheme,
                 'host' => $host,
                 'path' => $path,
@@ -85,41 +89,41 @@ class SolrSearchService extends SearchServiceAbstract
             );
         }
 
-        $this->_client = new SolariumClient($client_options);
+        $this->_client = new Client($options);
 
-        $this->attachNormalizer(SearchSchemaField::TYPE_DATE, new SolrDateNormalizer());
+        $this->attachNormalizer(SchemaField::TYPE_DATE, new DateNormalizer());
     }
 
     /**
-     * Overrides SearchServiceAbstract::getSubscribedEvents().
+     * Overrides SearchEngineAbstract::getSubscribedEvents().
      */
     public static function getSubscribedEvents()
     {
         return array(
-            SearchEvents::SERVICE_PRE_INDEX => array('preIndex'),
+            SearchEvents::SEARCH_ENGINE_PRE_INDEX => array('preIndex'),
             SearchEvents::DOCUMENT_POST_INDEX => array('postIndexDocument'),
-            SearchEvents::SERVICE_POST_INDEX => array('postIndex'),
+            SearchEvents::SEARCH_ENGINE_POST_INDEX => array('postIndex'),
         );
     }
 
     /**
-     * Sets the SolariumClient object.
+     * Sets the Client object.
      *
-     * @param SolariumClient $client
+     * @param Client $client
      *   The Solarium client.
      *
      * @return SolrSearchService
      */
-    public function setClient(SolariumClient $client)
+    public function setClient(Client $client)
     {
         $this->_client = $client;
         return $this;
     }
 
     /**
-     * Returns the SolariumClient object.
+     * Returns the Client object.
      *
-     * @return SolariumClient
+     * @return Client
      */
     public function getClient()
     {
@@ -151,19 +155,19 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Overrides Search::Framework::SearchServiceAbstract::getDocument().
+     * Overrides SearchEngineAbstract::getDocument().
      *
      * Returns a Solr specific search index document object.
      *
      * @return SolrIndexDocument
      */
-    public function newDocument()
+    public function newDocument(Indexer $indexer)
     {
-        return new SolrIndexDocument($this);
+        return new SolrIndexDocument($indexer);
     }
 
     /**
-     * Overrides Search::Framework::SearchServiceAbstract::getField().
+     * Overrides SearchEngineAbstract::getField().
      *
      * Returns a Solr specific search index field object.
      *
@@ -175,34 +179,34 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Implements Search::Framework::SearchServiceAbstract::createIndex().
+     * Implements Search::Framework::SearchEngineAbstract::createIndex().
      *
      * Solr indexes cannot be created from the client application, so this
      * method is no-op.
      */
-    public function createIndex($name, array $options = array()) {}
+    public function createIndex(Indexer $indexer, array $options = array()) {}
 
     /**
-     * Listener for the SearchEvents::SERVICE_PRE_INDEX event.
+     * Listener for the SearchEvents::SEARCH_ENGINE_PRE_INDEX event.
      *
      * Initializes the array of native document objects, instantiates the update
      * request handler.
      *
      * @param SearchCollectionEvent $event
      */
-    public function preIndex(SearchServiceEvent $event)
+    public function preIndex(SearchEngineEvent $event)
     {
         $this->_documents = array();
         $this->_update = $this->_client->createUpdate();
     }
 
     /**
-     * Implements SearchServiceAbstract::indexDocument().
+     * Implements SearchEngineAbstract::indexDocument().
      *
-     * @param SearchCollectionAbstract $collection
+     * @param CollectionAbstract $collection
      * @param SolrIndexDocument $document
      */
-    public function indexDocument(SearchCollectionAbstract $collection, SearchIndexDocument $document)
+    public function indexDocument(CollectionAbstract $collection, IndexDocument $document)
     {
         $solarium_document = $this->_update->createDocument();
 
@@ -231,7 +235,7 @@ class SolrSearchService extends SearchServiceAbstract
      *
      * @param SearchDocumentEvent $event
      */
-    public function postIndexDocument(SearchDocumentEvent $event)
+    public function postIndexDocument(IndexDocumentEvent $event)
     {
         if ($this->_batchSize) {
             $post_documents = !(count($this->_documents) % $this->_batchSize);
@@ -244,14 +248,14 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Listener for the SearchEvents::SERVICE_POST_INDEX event.
+     * Listener for the SearchEvents::SEARCH_ENGINE_POST_INDEX event.
      *
      * Commits any remaining documents, unsets the documents and request handler
      * since they are no longer needed.
      *
      * @param SearchCollectionEvent $event
      */
-    public function postIndex(SearchServiceEvent $event)
+    public function postIndex(SearchEngineEvent $event)
     {
         if ($this->_documents) {
             $this->_update->addDocuments($this->_documents);
@@ -264,7 +268,7 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Implements Search::Framework::SearchServiceAbstract::search().
+     * Implements Search::Framework::SearchEngineAbstract::search().
      *
      * @return \Solarium\QueryType\Select\Result\Result
      */
@@ -276,7 +280,7 @@ class SolrSearchService extends SearchServiceAbstract
     }
 
     /**
-     * Implements Search::Framework::SearchServiceAbstract::delete().
+     * Implements Search::Framework::SearchEngineAbstract::delete().
      *
      * @return \Solarium\QueryType\Update\Result
      */

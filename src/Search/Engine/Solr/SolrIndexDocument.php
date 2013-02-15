@@ -6,16 +6,16 @@
  * @license http://www.gnu.org/licenses/lgpl-3.0.txt
  */
 
-namespace Search\Service\Solr;
+namespace Search\Engine\Solr;
 
-use Search\Framework\SearchIndexDocument;
+use Search\Framework\IndexDocument;
 
 /**
  * Models a document containing the source data being indexed.
  *
  * This object adds Solr specific properties, such as field boosting.
  */
-class SolrIndexDocument extends SearchIndexDocument
+class SolrIndexDocument extends IndexDocument
 {
     /**
      * The document level boost set for this document.
